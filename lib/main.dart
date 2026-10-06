@@ -101,19 +101,106 @@ class _HomeState extends State<Home> {
   }
 }
 
+/// Minimal: ink on a plain page, hairlines instead of boxes, and the brand blue only on the main action.
 ThemeData _theme(Brightness brightness) {
-  // Blue and slate, the same palette as the asset-laravel web panel.
-  // fidelity keeps the brand blue itself as the primary colour instead of a softened tone of it.
-  final scheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF2563EB),
-    brightness: brightness,
-    dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+  final light = brightness == Brightness.light;
+  final page = light ? Colors.white : const Color(0xFF0B1120);
+  final ink = light ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
+  final muted = light ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+  final line = light ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B);
+  // The same blue as the asset-laravel web panel.
+  final blue = light ? const Color(0xFF2563EB) : const Color(0xFF3B82F6);
+
+  final scheme = ColorScheme.fromSeed(seedColor: blue, brightness: brightness).copyWith(
+    primary: blue,
+    onPrimary: Colors.white,
+    surface: page,
+    onSurface: ink,
+    onSurfaceVariant: muted,
+    outline: muted,
+    outlineVariant: line,
+    surfaceTint: Colors.transparent,
+    surfaceContainerLow: page,
+    surfaceContainerHigh: page,
+    inverseSurface: ink,
+    onInverseSurface: page,
   );
+  final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+  final hairline = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: BorderSide(color: line),
+  );
+
   return ThemeData(
     colorScheme: scheme,
     fontFamily: 'IBM Plex Sans Thai',
-    scaffoldBackgroundColor: brightness == Brightness.light ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
-    cardTheme: const CardThemeData(elevation: 0, margin: EdgeInsets.zero),
-    inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+    scaffoldBackgroundColor: page,
+    appBarTheme: AppBarTheme(
+      backgroundColor: page,
+      foregroundColor: ink,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontFamily: 'IBM Plex Sans Thai',
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        color: ink,
+      ),
+    ),
+    dividerTheme: DividerThemeData(color: line, thickness: 1, space: 1),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(64, 52),
+        shape: rounded,
+        textStyle: const TextStyle(fontFamily: 'IBM Plex Sans Thai', fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(64, 52),
+        shape: rounded,
+        foregroundColor: ink,
+        side: BorderSide(color: line),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: ink, shape: rounded),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      border: hairline,
+      enabledBorder: hairline,
+      focusedBorder: hairline.copyWith(borderSide: BorderSide(color: blue, width: 1.5)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      labelStyle: TextStyle(color: muted),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        shape: rounded,
+        side: BorderSide(color: line),
+        selectedBackgroundColor: line,
+        selectedForegroundColor: ink,
+        foregroundColor: muted,
+      ),
+    ),
+    listTileTheme: ListTileThemeData(contentPadding: EdgeInsets.zero, iconColor: muted),
+    expansionTileTheme: ExpansionTileThemeData(
+      shape: const Border(),
+      collapsedShape: const Border(),
+      tilePadding: EdgeInsets.zero,
+      iconColor: muted,
+      collapsedIconColor: muted,
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: page,
+      dragHandleColor: line,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: page,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+    snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: rounded),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: blue, linearTrackColor: line, linearMinHeight: 2),
   );
 }

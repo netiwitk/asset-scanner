@@ -106,20 +106,24 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final muted = TextStyle(color: theme.colorScheme.onSurfaceVariant);
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 64,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('สแกนทรัพย์สิน'),
-            Text(
-              '${widget.session.name} · ${widget.session.role}',
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
+            Text('${widget.session.name} · ${widget.session.role}', style: muted.copyWith(fontSize: 13)),
           ],
         ),
         actions: [
-          IconButton(tooltip: 'ออกจากระบบ', icon: const Icon(Icons.logout), onPressed: () => widget.onSignOut()),
+          IconButton(
+            tooltip: 'ออกจากระบบ',
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () => widget.onSignOut(),
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
@@ -127,18 +131,17 @@ class _ScanScreenState extends State<ScanScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 AspectRatio(
                   aspectRatio: 1,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: ColoredBox(color: const Color(0xFF1E293B), child: _cameraOn ? _viewfinder() : _cameraOff()),
+                    borderRadius: BorderRadius.circular(16),
+                    child: ColoredBox(color: const Color(0xFF0F172A), child: _cameraOn ? _viewfinder() : _cameraOff()),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: TextField(
@@ -153,31 +156,29 @@ class _ScanScreenState extends State<ScanScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    SizedBox(
-                      height: 56,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: _openTyped,
-                        child: const Text('ดู'),
-                      ),
-                    ),
+                    FilledButton(onPressed: _openTyped, child: const Text('ดู')),
                   ],
                 ),
                 if (isDemo) ...[
-                  const SizedBox(height: 20),
-                  Text('ไม่มีป้าย QR อยู่ใกล้ๆ? ลองรหัสตัวอย่าง', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 32),
+                  Text('ไม่มีป้าย QR อยู่ใกล้ๆ? ลองรหัสตัวอย่าง', style: muted.copyWith(fontSize: 13)),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final sample in _sampleTags)
-                        ActionChip(label: Text('${sample.tag} ${sample.name}'), onPressed: () => _open(sample.tag)),
-                    ],
-                  ),
+                  const Divider(),
+                  for (final sample in _sampleTags) ...[
+                    ListTile(
+                      title: Text(sample.tag, style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: .3)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(sample.name, style: muted.copyWith(fontSize: 14)),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
+                      onTap: () => _open(sample.tag),
+                    ),
+                    const Divider(),
+                  ],
                 ],
               ],
             ),
@@ -195,34 +196,24 @@ class _ScanScreenState extends State<ScanScreen> {
           controller: _camera,
           onDetect: _onDetect,
           errorBuilder: (context, error) => _cameraMessage(
-            Icons.no_photography_outlined,
             error.errorCode == MobileScannerErrorCode.permissionDenied
                 ? 'ไม่ได้รับอนุญาตให้ใช้กล้อง เปิดสิทธิ์ในการตั้งค่า หรือพิมพ์รหัสด้านล่างแทน'
                 : 'เปิดกล้องไม่ได้ พิมพ์รหัสด้านล่างแทน',
           ),
         ),
-        IgnorePointer(
+        const IgnorePointer(
           child: Center(
-            child: FractionallySizedBox(
-              widthFactor: .62,
-              heightFactor: .62,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white.withValues(alpha: .9), width: 3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
+            child: FractionallySizedBox(widthFactor: .6, heightFactor: .6, child: CustomPaint(painter: _Corners())),
           ),
         ),
         const Positioned(
           left: 0,
           right: 0,
-          bottom: 16,
+          bottom: 18,
           child: Text(
             'ส่องคิวอาร์โค้ดบนป้ายทรัพย์สิน',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ),
       ],
@@ -231,31 +222,62 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Widget _cameraOff() {
     return Center(
-      child: FilledButton.icon(
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Colors.white38),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+        ),
         onPressed: _turnCameraOn,
-        icon: const Icon(Icons.qr_code_scanner),
+        icon: const Icon(Icons.qr_code_scanner, size: 20),
         label: const Text('เปิดกล้องสแกน'),
       ),
     );
   }
 
-  Widget _cameraMessage(IconData icon, String message) {
+  Widget _cameraMessage(String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white70, size: 40),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ],
+        padding: const EdgeInsets.all(28),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white70),
         ),
       ),
     );
   }
+}
+
+/// Four corner marks around the area to aim at, instead of a full frame.
+class _Corners extends CustomPainter {
+  const _Corners();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const arm = 28.0;
+    final pen = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final (w, h) = (size.width, size.height);
+    final corners = Path()
+      ..moveTo(0, arm)
+      ..lineTo(0, 0)
+      ..lineTo(arm, 0)
+      ..moveTo(w - arm, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w, arm)
+      ..moveTo(w, h - arm)
+      ..lineTo(w, h)
+      ..lineTo(w - arm, h)
+      ..moveTo(arm, h)
+      ..lineTo(0, h)
+      ..lineTo(0, h - arm);
+    canvas.drawPath(corners, pen);
+  }
+
+  @override
+  bool shouldRepaint(_Corners oldDelegate) => false;
 }

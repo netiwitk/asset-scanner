@@ -28,6 +28,11 @@ void main() {
       }),
     )..token = 't';
 
+    // A phone-sized screen, as the app is used.
+    tester.view.physicalSize = const Size(390, 844) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       MaterialApp(
         home: AssetScreen(api: api, tag: 'AV-67-0034', onSignOut: ({bool expired = false}) async {}),

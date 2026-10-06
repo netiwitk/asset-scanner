@@ -55,22 +55,28 @@ class _SlowHintState extends State<SlowHint> {
   }
 }
 
-/// A status badge coloured like the web panel's badge for the same status.
-class StatusChip extends StatelessWidget {
-  const StatusChip(this.status, {super.key});
+/// A status as a dot coloured like the web panel's badge for the same status, then its label.
+class StatusDot extends StatelessWidget {
+  const StatusDot(this.status, {super.key});
 
   final Labelled status;
 
   @override
   Widget build(BuildContext context) {
-    final color = toneColor(Theme.of(context).colorScheme, status.tone);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: .12), borderRadius: BorderRadius.circular(99)),
-      child: Text(
-        status.label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w600),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: toneColor(Theme.of(context).colorScheme, status.tone),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 7),
+        Text(status.label, style: const TextStyle(fontWeight: FontWeight.w500)),
+      ],
     );
   }
 }
