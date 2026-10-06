@@ -33,7 +33,8 @@ http.Response jsonResponse(Object? body, int status) =>
     http.Response.bytes(utf8.encode(jsonEncode(body)), status, headers: {'content-type': 'application/json'});
 
 AssetApi apiReturning(http.Response response) =>
-    AssetApi('https://example.test', client: MockClient((_) async => response))..token = 't';
+    AssetApi('https://example.test', client: MockClient((_) async => response), wakeRetryDelay: Duration.zero)
+      ..token = 't';
 
 void main() {
   group('tagFromScan', () {
@@ -105,8 +106,41 @@ void main() {
   });
 
   test('a dropped connection is Unreachable, not a crash', () async {
-    final api = AssetApi('https://example.test', client: MockClient((_) => throw http.ClientException('offline')));
+    final api = AssetApi(
+      'https://example.test',
+      client: MockClient((_) => throw http.ClientException('offline')),
+      wakeRetryDelay: Duration.zero,
+    );
 
     await expectLater(api.fetch('X'), throwsA(isA<Unreachable>()));
+  });
+
+  test('keeps asking while the sleeping demo server wakes', () async {
+    var calls = 0;
+    final api = AssetApi(
+      'https://example.test',
+      client: MockClient((_) async => ++calls < 3 ? http.Response('waking', 503) : jsonResponse(assetJson(), 200)),
+      wakeRetryDelay: Duration.zero,
+    )..token = 't';
+
+    final asset = await api.fetch('AV-67-0034');
+
+    expect(asset.tag, 'AV-67-0034');
+    expect(calls, 3);
+  });
+
+  test('never resends a hand-over, so it cannot happen twice', () async {
+    var calls = 0;
+    final api = AssetApi(
+      'https://example.test',
+      client: MockClient((_) async {
+        calls++;
+        return http.Response('waking', 503);
+      }),
+      wakeRetryDelay: Duration.zero,
+    )..token = 't';
+
+    await expectLater(api.perform('AV-67-0034', AssetAction.handOver), throwsA(isA<Unreachable>()));
+    expect(calls, 1);
   });
 }

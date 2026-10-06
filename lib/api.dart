@@ -121,22 +121,29 @@ String? tagFromScan(String raw) {
 }
 
 class AssetApi {
-  AssetApi(this.baseUrl, {http.Client? client}) : _client = client ?? http.Client();
+  AssetApi(this.baseUrl, {http.Client? client, this.wakeRetryDelay = const Duration(seconds: 3)})
+    : _client = client ?? http.Client();
 
   final String baseUrl;
   final http.Client _client;
 
+  /// The pause between tries while the demo server wakes; [_wakeTries] of them cover its usual minute.
+  final Duration wakeRetryDelay;
+  static const _wakeTries = 30;
+
   /// Set after login; every other request sends it as a Bearer token.
   String? token;
 
-  // The free demo server sleeps when idle and takes about a minute to wake.
   static const _timeout = Duration(seconds: 90);
 
   Future<Session> demoLogin(String account) async =>
-      _signedIn(Session.fromJson(await _send('POST', '/api/tokens/demo/$account')));
+      _signedIn(Session.fromJson(await _send('POST', '/api/tokens/demo/$account', retryWhileWaking: true)));
 
-  Future<Session> login(String email, String password) async =>
-      _signedIn(Session.fromJson(await _send('POST', '/api/tokens', {'email': email, 'password': password})));
+  Future<Session> login(String email, String password) async => _signedIn(
+    Session.fromJson(
+      await _send('POST', '/api/tokens', body: {'email': email, 'password': password}, retryWhileWaking: true),
+    ),
+  );
 
   Future<void> logout() async {
     try {
@@ -147,10 +154,10 @@ class AssetApi {
     token = null;
   }
 
-  Future<ScannedAsset> fetch(String tag) async => _asset(await _send('GET', _assetPath(tag)));
+  Future<ScannedAsset> fetch(String tag) async => _asset(await _send('GET', _assetPath(tag), retryWhileWaking: true));
 
   Future<ScannedAsset> perform(String tag, AssetAction action, [Map<String, Object?> body = const {}]) async =>
-      _asset(await _send('POST', '${_assetPath(tag)}/${action.path}', body));
+      _asset(await _send('POST', '${_assetPath(tag)}/${action.path}', body: body));
 
   Session _signedIn(Session session) {
     token = session.token;
@@ -161,7 +168,26 @@ class AssetApi {
 
   ScannedAsset _asset(Map<String, dynamic> json) => ScannedAsset.fromJson(json['data'] as Map<String, dynamic>);
 
-  Future<Map<String, dynamic>> _send(String method, String path, [Map<String, Object?>? body]) async {
+  /// The free demo server sleeps when idle. While it wakes, its host answers 503 without CORS headers,
+  /// which a browser reports as a dropped connection. [retryWhileWaking] keeps trying through that,
+  /// and is only for requests that are safe to send twice: reads and sign-ins, never a hand-over.
+  Future<Map<String, dynamic>> _send(
+    String method,
+    String path, {
+    Map<String, Object?>? body,
+    bool retryWhileWaking = false,
+  }) async {
+    for (var tries = 1; ; tries++) {
+      try {
+        return await _sendOnce(method, path, body);
+      } on _Waking {
+        if (!retryWhileWaking || tries >= _wakeTries) throw const Unreachable();
+        await Future<void>.delayed(wakeRetryDelay);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _sendOnce(String method, String path, Map<String, Object?>? body) async {
     final request = http.Request(method, Uri.parse('$baseUrl$path'))
       ..headers.addAll({
         'Accept': 'application/json',
@@ -174,9 +200,9 @@ class AssetApi {
     try {
       response = await http.Response.fromStream(await _client.send(request).timeout(_timeout));
     } on TimeoutException {
-      throw const Unreachable();
+      throw const _Waking();
     } on http.ClientException {
-      throw const Unreachable();
+      throw const _Waking();
     }
 
     Object? json;
@@ -187,6 +213,7 @@ class AssetApi {
     }
 
     final status = response.statusCode;
+    if (status == 502 || status == 503 || status == 504) throw const _Waking();
     if (status == 401) throw const SignedOut();
     if (status == 404) throw const NotFound();
     if (status == 403 || status == 422 || status == 429) throw Refused(_reason(json, status));
@@ -203,4 +230,9 @@ class AssetApi {
     if (errors is Map && errors.isNotEmpty) return (errors.values.first as List).first as String;
     return json['message'] as String? ?? 'ทำรายการไม่สำเร็จ';
   }
+}
+
+/// No answer yet, or the host's gateway error: the server may still be starting.
+class _Waking implements Exception {
+  const _Waking();
 }
