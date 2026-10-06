@@ -20,3 +20,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Bundled so Thai shows from the first frame on the web, instead of boxes until a fallback font downloads.
+  # Licence: fonts/OFL.txt
+  fonts:
+    - family: IBM Plex Sans Thai
+      fonts:
+        - asset: fonts/IBMPlexSansThai-Regular.ttf
+        - asset: fonts/IBMPlexSansThai-SemiBold.ttf
+          weight: 600
+        - asset: fonts/IBMPlexSansThai-Bold.ttf
+          weight: 700

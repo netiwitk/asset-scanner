@@ -121,7 +121,7 @@ class _AssetScreenState extends State<AssetScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(asset.tag, style: muted.copyWith(fontFamily: 'monospace', letterSpacing: .5)),
+        Text(asset.tag, style: muted.copyWith(letterSpacing: .5)),
         const SizedBox(height: 4),
         Text(asset.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
@@ -191,11 +191,7 @@ class _AssetScreenState extends State<AssetScreen> {
           color: Theme.of(context).colorScheme.outline,
         ),
         const SizedBox(height: 12),
-        Text(
-          widget.tag,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'monospace'),
-        ),
+        Text(widget.tag, textAlign: TextAlign.center, style: const TextStyle(letterSpacing: .5)),
         const SizedBox(height: 4),
         Text(error.message, textAlign: TextAlign.center),
         const SizedBox(height: 20),

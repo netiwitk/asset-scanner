@@ -30,3 +30,21 @@ flutter build apk --dart-define=API_URL=https://asset-laravel.onrender.com
 
 ถ้าไม่ใส่ `API_URL` แอปจะชี้ไปที่ demo บน Render ซึ่งเป็นเครื่องฟรี ถ้าไม่มีคนใช้สักพักจะหลับ
 ครั้งแรกจึงอาจรอราว 1 นาที
+
+### ทดสอบในเบราว์เซอร์จริง
+
+`tool/e2e.mjs` เปิด Chrome แบบไม่มีหน้าจอ แล้วกดใช้แอปเหมือนคนจริงบนจอกว้าง 390px
+ครอบคลุมการเข้าใช้แต่ละบทบาท ส่งมอบ รับคืนแบบชำรุด พิมพ์รหัส สแกนผ่านกล้อง (ใช้วิดีโอปลอมที่มี QR)
+พนักงานสแกนของหน่วยงานอื่นไม่เห็น และเปิดจากลิงก์ QR
+
+```bash
+# asset-laravel ต้องเปิด APP_DEMO=true และเพิ่ง seed ใหม่ (php artisan migrate:fresh --seed)
+flutter build web --dart-define=API_URL=http://127.0.0.1:8000 --dart-define=DEMO=true
+(cd build/web && python3 -m http.server 8766) &
+node tool/e2e.mjs http://127.0.0.1:8766 [วิดีโอ.y4m ที่มี QR ของ COM-64-0002]
+```
+
+## หมายเหตุ
+
+- APK ที่ CI สร้างเซ็นด้วย debug key ของ Flutter ใช้เป็นตัวลองได้ แต่ถ้าจะขึ้น Play Store ต้องใช้ key จริง
+- ฟอนต์ IBM Plex Sans Thai ฝังมากับแอป (สัญญาอนุญาต `fonts/OFL.txt`) เพื่อให้ภาษาไทยขึ้นตั้งแต่เปิดแอปบนเว็บ

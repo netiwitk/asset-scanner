@@ -111,6 +111,7 @@ ThemeData _theme(Brightness brightness) {
   );
   return ThemeData(
     colorScheme: scheme,
+    fontFamily: 'IBM Plex Sans Thai',
     scaffoldBackgroundColor: brightness == Brightness.light ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
     cardTheme: const CardThemeData(elevation: 0, margin: EdgeInsets.zero),
     inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),

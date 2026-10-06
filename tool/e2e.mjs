@@ -5,7 +5,8 @@
 //   appUrl         a web build made with --dart-define=DEMO=true, pointed at an asset-laravel
 //                  with APP_DEMO=true and freshly seeded data (php artisan migrate:fresh --seed)
 //   fake-camera    optional Y4M video for Chrome's fake webcam; its frames must show the QR for COM-64-0002
-// env:    CHROME_PATH, E2E_PORT (default 9455), E2E_SHOTS (folder for screenshots, default: none)
+// env:    CHROME_PATH, E2E_PORT (default 9455), E2E_SHOTS (folder for screenshots, default: none),
+//         E2E_THEME (light or dark; default: the browser's)
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -49,6 +50,7 @@ const evaluate = async (expression) => (await send('Runtime.evaluate', { express
 
 await Promise.all(['Page.enable', 'Runtime.enable'].map((m) => send(m)));
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: false });
+if (process.env.E2E_THEME) await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: process.env.E2E_THEME }] });
 
 // Every label Flutter exposes, each with the centre of its box. Text fields expose their label as aria-label.
 const nodes = () => evaluate(`[...document.querySelectorAll('flt-semantics, input, textarea')].map((el) => {
