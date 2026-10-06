@@ -44,6 +44,11 @@ class _ScanScreenState extends State<ScanScreen> {
   /// One asset at a time: the camera keeps reporting the same code while the asset page opens.
   bool _showingAsset = false;
 
+  /// Back from an asset, the camera is usually still pointing at its label. Ignore that code for a moment,
+  /// or "scan the next one" would reopen the same asset straight away.
+  String? _lastTag;
+  DateTime _backAt = DateTime(0);
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +71,7 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<void> _open(String tag) async {
     if (_showingAsset) return;
     _showingAsset = true;
+    _lastTag = tag;
     if (_cameraOn) await _camera.stop();
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -74,13 +80,16 @@ class _ScanScreenState extends State<ScanScreen> {
       ),
     );
     _showingAsset = false;
+    _backAt = DateTime.now();
     if (_cameraOn && mounted) await _camera.start();
   }
 
   void _onDetect(BarcodeCapture capture) {
     final raw = capture.barcodes.firstOrNull?.rawValue;
     final tag = raw == null ? null : tagFromScan(raw);
-    if (tag != null) _open(tag);
+    if (tag == null) return;
+    if (tag == _lastTag && DateTime.now().difference(_backAt) < const Duration(seconds: 3)) return;
+    _open(tag);
   }
 
   void _openTyped() {
@@ -124,7 +133,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   aspectRatio: 1,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: ColoredBox(color: const Color(0xFF0F172A), child: _cameraOn ? _viewfinder() : _cameraOff()),
+                    child: ColoredBox(color: const Color(0xFF1E293B), child: _cameraOn ? _viewfinder() : _cameraOff()),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -146,7 +155,14 @@ class _ScanScreenState extends State<ScanScreen> {
                     const SizedBox(width: 8),
                     SizedBox(
                       height: 56,
-                      child: FilledButton(onPressed: _openTyped, child: const Text('ดู')),
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: _openTyped,
+                        child: const Text('ดู'),
+                      ),
                     ),
                   ],
                 ),

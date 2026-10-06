@@ -13,37 +13,35 @@ Future<void> main() async {
   SemanticsBinding.instance.ensureSemantics();
 
   final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('token');
-  final saved = token == null
-      ? null
-      : Session(token: token, name: prefs.getString('name') ?? '', role: prefs.getString('role') ?? '');
-
-  final home = Home(api: AssetApi(apiUrl), prefs: prefs, saved: saved, openTag: _tagInLink());
-  runApp(
-    MaterialApp(
-      title: 'สแกนทรัพย์สิน',
-      debugShowCheckedModeBanner: false,
-      theme: _theme(Brightness.light),
-      darkTheme: _theme(Brightness.dark),
-      // The URL hash may hold `/a/<tag>`. It is read by _tagInLink, not looked up as a route name.
-      onGenerateInitialRoutes: (_) => [MaterialPageRoute<void>(builder: (_) => home)],
-    ),
-  );
+  final api = AssetApi(apiUrl);
+  runApp(scannerApp((tag) => Home(api: api, prefs: prefs, openTag: tag)));
 }
 
-/// A QR label can hold a link like `https://.../#/a/AV-67-0037`; opening it shows that asset.
-String? _tagInLink() {
-  final link = Uri.base.toString();
-  return link.contains('#/a/') ? tagFromScan(link) : null;
+/// [home] is given the asset tag when the app is opened from a QR link like `https://.../#/a/AV-67-0037`.
+MaterialApp scannerApp(Widget Function(String? tag) home) {
+  Route<void> route(String? name) {
+    final tag = name != null && name.startsWith('/a/') ? tagFromScan('#$name') : null;
+    return MaterialPageRoute<void>(builder: (_) => home(tag));
+  }
+
+  return MaterialApp(
+    title: 'สแกนทรัพย์สิน',
+    debugShowCheckedModeBanner: false,
+    theme: _theme(Brightness.light),
+    darkTheme: _theme(Brightness.dark),
+    // A link opened while the app is already running.
+    onGenerateRoute: (settings) => route(settings.name),
+    // The link the app started with, as one page; by default Flutter would stack a page per path segment.
+    onGenerateInitialRoutes: (name) => [route(name)],
+  );
 }
 
 /// Signed out: the login screen. Signed in: the scanner.
 class Home extends StatefulWidget {
-  const Home({super.key, required this.api, required this.prefs, this.saved, this.openTag});
+  const Home({super.key, required this.api, required this.prefs, this.openTag});
 
   final AssetApi api;
   final SharedPreferences prefs;
-  final Session? saved;
   final String? openTag;
 
   @override
@@ -51,8 +49,19 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  late Session? _session = widget.saved;
+  /// Read when this page opens, so a page opened later by a link sees a sign-in made after start-up.
+  late Session? _session = _savedSession();
   late String? _openTag = widget.openTag;
+
+  Session? _savedSession() {
+    final token = widget.prefs.getString('token');
+    if (token == null) return null;
+    return Session(
+      token: token,
+      name: widget.prefs.getString('name') ?? '',
+      role: widget.prefs.getString('role') ?? '',
+    );
+  }
 
   @override
   void initState() {
@@ -69,7 +78,8 @@ class _HomeState extends State<Home> {
 
   /// [expired]: the server already refused the token, so there is nothing to revoke.
   Future<void> _signOut({bool expired = false}) async {
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    final page = ModalRoute.of(context);
+    Navigator.of(context).popUntil((route) => route == page);
     if (!expired) await widget.api.logout();
     widget.api.token = null;
     await widget.prefs.remove('token');
@@ -93,7 +103,12 @@ class _HomeState extends State<Home> {
 
 ThemeData _theme(Brightness brightness) {
   // Blue and slate, the same palette as the asset-laravel web panel.
-  final scheme = ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB), brightness: brightness);
+  // fidelity keeps the brand blue itself as the primary colour instead of a softened tone of it.
+  final scheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF2563EB),
+    brightness: brightness,
+    dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+  );
   return ThemeData(
     colorScheme: scheme,
     scaffoldBackgroundColor: brightness == Brightness.light ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
