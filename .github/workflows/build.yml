@@ -42,8 +42,9 @@ jobs:
       - run: flutter pub get
       - run: flutter build web --release --base-href /asset-scanner/ --dart-define=DEMO=true
       # Signed with the debug key from Flutter's template: fine for a demo download, not for the Play Store.
-      - run: flutter build apk --release --dart-define=DEMO=true
-      - run: cp build/app/outputs/flutter-apk/app-release.apk build/web/asset-scanner.apk
+      # arm64 only: the all-in-one APK is ~68 MB, and practically every phone in use is arm64.
+      - run: flutter build apk --release --split-per-abi --dart-define=DEMO=true
+      - run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/web/asset-scanner.apk
       - uses: actions/upload-pages-artifact@v5
         with:
           path: build/web
